@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYE-BYE Julia</title>
+
+    <!-- Supabase JavaScript library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #f9f6f0;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid #e0dcd3;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #4a4039;
+            margin-bottom: 10px;
+        }
+
+        .date {
+            font-size: 0.9em;
+            color: #8c8279;
+            font-style: italic;
+        }
+
+        .entry-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border-left: 4px solid #b5a496;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            color: #5c5048;
+            margin-top: 0;
+        }
+
+        p {
+            margin-bottom: 0;
+        }
+
+        .reactions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #eee7df;
+        }
+
+        .reaction-btn {
+            background: #f9f6f0;
+            border: 1px solid #e0dcd3;
+            border-radius: 20px;
+            padding: 7px 12px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .reaction-btn:hover {
+            background: #eee8df;
+        }
+
+        .reaction-btn:active {
+            transform: scale(0.95);
+        }
+
+        .reaction-btn.active {
+            background: #e8dfd4;
+            border-color: #b5a496;
+        }
+
+        .reaction-btn span {
+            margin-left: 4px;
+            color: #6c625a;
+        }
+
+        .reaction-btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .status {
+            font-size: 0.85em;
+            color: #8c8279;
+            margin-top: 10px;
+        }
+    </style>
+    
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self' https://cdn.jsdelivr.net;
+               connect-src 'self' https://xnherhloettrjugkonfy.supabase.co;
+               style-src 'self' 'unsafe-inline';">
+    
+</head>
+
+<body>
+
+    <header>
+        <h1>BYE-BYE Julia</h1>
+        <div class="date">Aqui pondre todo lo que pienso</div>
+    </header>
+
+    <main>
+        <article class="entry-card" data-entry-id="entry-1">
+
+            <h2>esta es mi despedida a julia</h2>
+
+            <div class="date">23 de septiembre, 2026</div>
+
+            <p>
+                hay muchas cosas que te quiero decir pero no puedo
+                hacerlo en persona, hire actualizando esta pagina
+                para decirtelo todo.
+            </p>
+
+            <div class="reactions" aria-label="Reacciones">
+
+                <button class="reaction-btn" data-emoji="❤️">
+                    ❤️ <span>0</span>
+                </button>
+
+                <button class="reaction-btn" data-emoji="😂">
+                    😂 <span>0</span>
+                </button>
+
+                <button class="reaction-btn" data-emoji="😢">
+                    😢 <span>0</span>
+                </button>
+
+                <button class="reaction-btn" data-emoji="🫶">
+                    🫶 <span>0</span>
+                </button>
+
+                <button class="reaction-btn" data-emoji="👍">
+                    👍 <span>0</span>
+                </button>
+
+            </div>
+
+        </article>
+    </main>
+
+    <script>
+        // ==========================================
+        // SUPABASE CONNECTION
+        // ==========================================
+
+        const SUPABASE_URL =
+            "https://xnherhloettrjugkonfy.supabase.co";
+
+        const SUPABASE_KEY =
+            "sb_publishable_qoNj0yFguXhvX9rn-W23Dg_-eiGSOeP";
+
+        const supabaseClient = supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY
+        );
+
+
+        // ==========================================
+        // VISITOR ID
+        // ==========================================
+
+        let userId = localStorage.getItem("reaction_user_id");
+
+        if (!userId) {
+            userId = crypto.randomUUID();
+            localStorage.setItem("reaction_user_id", userId);
+        }
+
+
+        // ==========================================
+        // LOAD ALL REACTIONS
+        // ==========================================
+
+        async function loadReactions() {
+
+            const { data, error } = await supabaseClient
+                .from("entry_reactions")
+                .select("*");
+
+            if (error) {
+                console.error("Error loading reactions:", error);
+                return;
+            }
+
+            updateReactionCounts(data);
+        }
+
+
+        // ==========================================
+        // UPDATE REACTION COUNTS ON SCREEN
+        // ==========================================
+
+        function updateReactionCounts(reactions) {
+
+            document.querySelectorAll(".entry-card").forEach(card => {
+
+                const entryId = card.dataset.entryId;
+
+                const entryReactions = reactions.filter(
+                    reaction => reaction.entry_id === entryId
+                );
+
+                card.querySelectorAll(".reaction-btn").forEach(button => {
+
+                    const emoji = button.dataset.emoji;
+
+                    const count = entryReactions.filter(
+                        reaction => reaction.emoji === emoji
+                    ).length;
+
+                    button.querySelector("span").textContent = count;
+
+                    const hasReacted = entryReactions.some(
+                        reaction =>
+                            reaction.emoji === emoji &&
+                            reaction.user_id === userId
+                    );
+
+                    button.classList.toggle("active", hasReacted);
+
+                });
+
+            });
+
+        }
+
+
+        // ==========================================
+        // HANDLE REACTION CLICKS
+        // ==========================================
+
+        document.querySelectorAll(".reaction-btn").forEach(button => {
+
+            button.addEventListener("click", async () => {
+
+                const card = button.closest(".entry-card");
+
+                const entryId = card.dataset.entryId;
+
+                const emoji = button.dataset.emoji;
+
+                // Prevent repeated clicks while processing
+                button.disabled = true;
+
+                try {
+
+                    // Check if this visitor already reacted
+                    const { data: existingReaction, error: findError } =
+                        await supabaseClient
+                            .from("entry_reactions")
+                            .select("id")
+                            .eq("entry_id", entryId)
+                            .eq("emoji", emoji)
+                            .eq("user_id", userId)
+                            .maybeSingle();
+
+                    if (findError) {
+                        throw findError;
+                    }
+
+                    if (existingReaction) {
+
+                        // Remove reaction
+                        const { error } = await supabaseClient
+                            .from("entry_reactions")
+                            .delete()
+                            .eq("id", existingReaction.id);
+
+                        if (error) throw error;
+
+                    } else {
+
+                        // Add reaction
+                        const { error } = await supabaseClient
+                            .from("entry_reactions")
+                            .insert({
+                                entry_id: entryId,
+                                emoji: emoji,
+                                user_id: userId
+                            });
+
+                        if (error) throw error;
+
+                    }
+
+                    // Refresh counts
+                    await loadReactions();
+
+                } catch (error) {
+
+                    console.error("Reaction error:", error);
+                    alert("No se pudo guardar la reaccion. Intentalo de nuevo.");
+
+                } finally {
+
+                    button.disabled = false;
+
+                }
+
+            });
+
+        });
+
+
+        // ==========================================
+        // REAL-TIME UPDATES
+        // ==========================================
+
+        supabaseClient
+            .channel("entry-reactions")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "entry_reactions"
+                },
+                () => {
+                    loadReactions();
+                }
+            )
+            .subscribe();
+
+
+        // ==========================================
+        // INITIAL LOAD
+        // ==========================================
+
+        loadReactions();
+
+    </script>
+
+</body>
+</html>
